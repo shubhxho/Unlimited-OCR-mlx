@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unlimited-ocr-mlx"
+version = "0.1.0"
+description = "Native MLX runner for Baidu Unlimited-OCR"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "mlx-vlm==0.6.16",
+  "pymupdf>=1.24,<2",
+  "jinja2>=3.1",
+]
+
+[project.scripts]
+unlimited-ocr-mlx = "infer_mlx:main"
+
+[tool.setuptools]
+py-modules = ["infer_mlx", "unlimited_ocr_mlx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
