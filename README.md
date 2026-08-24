@@ -22,6 +22,10 @@ The MLX backend preserves the released model design:
 - official `gundam` dynamic-crop and `base` global-view preprocessing
 - deterministic decoding with the released sliding no-repeat 35-gram guard
 
+## Checkpoint status
+
+This repository publishes the native MLX runner and model card. It resolves the official BF16 checkpoint from [`baidu/Unlimited-OCR`](https://huggingface.co/baidu/Unlimited-OCR) at run time, so it does **not** yet duplicate a standalone MLX-weight artifact. A standalone quantized checkpoint will only be published after conversion and output-parity evaluation against the official checkpoint.
+
 ## Requirements
 
 - macOS on Apple Silicon
