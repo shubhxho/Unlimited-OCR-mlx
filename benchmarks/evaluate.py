@@ -44,6 +44,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--model", default="baidu/Unlimited-OCR")
+    parser.add_argument("--model-revision", default="07dea832e22aefee32ad281d4b80551282e1c168")
     parser.add_argument("--adapter-path", type=Path, help="MLX LoRA adapter directory")
     parser.add_argument("--output", type=Path, required=True, help="JSON report path")
     parser.add_argument("--max-tokens", type=int, default=8192)
@@ -60,7 +61,7 @@ def run(args: argparse.Namespace) -> dict:
 
     examples = load_manifest(args.manifest)
     validate_manifest_images(examples, args.image_root, args.verify_hashes)
-    model, processor = load(args.model)
+    model, processor = load(args.model, revision=args.model_revision)
     if args.adapter_path:
         model = apply_lora_layers(model, str(args.adapter_path))
 
@@ -85,6 +86,7 @@ def run(args: argparse.Namespace) -> dict:
         "mean_cer": sum(row["cer"] for row in rows) / len(rows),
         "complete_rate": sum(row["complete"] for row in rows) / len(rows),
         "model": args.model,
+        "model_revision": args.model_revision,
         "adapter_path": str(args.adapter_path) if args.adapter_path else None,
     }
     report = {"summary": summary, "rows": rows}

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 MODEL_ID = "baidu/Unlimited-OCR"
+MODEL_REVISION = "07dea832e22aefee32ad281d4b80551282e1c168"
 SINGLE_IMAGE_PROMPT = "document parsing."
 MULTI_PAGE_PROMPT = "Multi page parsing."
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
@@ -167,8 +168,12 @@ def mode_for(image_count: int, requested_mode: str = "auto") -> OCRMode:
     raise ValueError(f"Unknown image mode: {requested_mode}")
 
 
-def load_model(model_id: str = MODEL_ID):
-    """Load the native MLX Unlimited-OCR architecture and its processor."""
+def load_model(
+    model_id: str = MODEL_ID,
+    revision: str | None = MODEL_REVISION,
+    adapter_path: str | Path | None = None,
+):
+    """Load the native MLX architecture at a reproducible revision and optional adapter."""
 
     try:
         from mlx_vlm import load
@@ -177,7 +182,7 @@ def load_model(model_id: str = MODEL_ID):
             "MLX-VLM is required. Install the project with `uv sync` or run "
             "`uv run unlimited-ocr-mlx --help`."
         ) from exc
-    return load(model_id)
+    return load(model_id, revision=revision, adapter_path=str(adapter_path) if adapter_path else None)
 
 
 def ocr_images(

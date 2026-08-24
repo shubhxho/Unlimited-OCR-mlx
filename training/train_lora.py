@@ -29,6 +29,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--validation", type=Path, help="Held-out validation JSONL manifest")
     parser.add_argument("--image-root", required=True, type=Path, help="Root directory containing manifest images")
     parser.add_argument("--model", default="baidu/Unlimited-OCR", help="BF16 Unlimited-OCR checkpoint or local MLX checkpoint")
+    parser.add_argument("--model-revision", default="07dea832e22aefee32ad281d4b80551282e1c168", help="Pinned Hugging Face revision; ignored for local paths")
     parser.add_argument("--output-dir", type=Path, default=Path("runs/unlimited-ocr-lora"))
     parser.add_argument("--iters", type=int, default=200)
     parser.add_argument("--learning-rate", type=float, default=1e-5)
@@ -187,7 +188,7 @@ def run(args: argparse.Namespace) -> None:
     (args.output_dir / "training_config.json").write_text(json.dumps(vars(args), default=str, indent=2) + "\n")
 
     print(f"Loading {args.model} …")
-    model, processor = load(args.model)
+    model, processor = load(args.model, revision=args.model_revision)
     _install_lora(model, args.rank, args.alpha, args.dropout)
     optimizer = optim.AdamW(learning_rate=args.learning_rate)
     loss_and_grad = nn.value_and_grad(model, completion_loss)

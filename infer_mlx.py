@@ -13,6 +13,7 @@ from unlimited_ocr_mlx import (
     BASE,
     GUNDAM,
     MODEL_ID,
+    MODEL_REVISION,
     collect_images,
     load_model,
     ocr_images,
@@ -74,6 +75,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     source.add_argument("--pdf", type=Path, help="Render a PDF and parse its pages together in base mode")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs"), help="Directory for Markdown and JSON metrics")
     parser.add_argument("--model", default=MODEL_ID, help="Hugging Face model ID or local MLX-compatible checkpoint")
+    parser.add_argument("--model-revision", default=MODEL_REVISION, help="Pinned Hugging Face revision; ignored for local paths")
+    parser.add_argument("--adapter-path", type=Path, help="Optional MLX LoRA adapter directory")
     parser.add_argument("--prompt", default=None, help="OCR instruction; defaults to Baidu's single or multi-page prompt")
     parser.add_argument("--mode", choices=("auto", "gundam", "base"), default="auto", help="gundam is single-image crop mode; base is global-view mode")
     parser.add_argument("--max-tokens", type=int, default=32768, help="Maximum generated tokens per OCR request")
@@ -174,7 +177,7 @@ def _run_jobs(jobs: list[tuple[list[Path], Path]], args: argparse.Namespace) -> 
         return 0
 
     print(f"Loading {args.model} with MLX-VLM …")
-    model, processor = load_model(args.model)
+    model, processor = load_model(args.model, revision=args.model_revision, adapter_path=args.adapter_path)
     print(f"Loaded. Processing {len(pending)} OCR request(s).")
     complete = 0
     for index, (pages, output) in enumerate(pending, 1):

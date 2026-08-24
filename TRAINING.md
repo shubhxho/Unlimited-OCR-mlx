@@ -32,6 +32,7 @@ uv run python -m training.train_lora \
   --validation manifests/validation.jsonl \
   --image-root data/images \
   --output-dir runs/ocr-lora-001 \
+  --model-revision 07dea832e22aefee32ad281d4b80551282e1c168 \
   --iters 200 --rank 16 --alpha 32 --max-seq-length 8192 \
   --verify-hashes
 ```
