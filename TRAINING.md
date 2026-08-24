@@ -45,7 +45,7 @@ The trainer:
 - masks the prompt and image placeholders, training only canonical target tokens;
 - rejects over-length image examples instead of truncating visual placeholders;
 - freezes the base model and trains MLX LoRA modules in the language decoder;
-- saves adapter weights and their matching `adapter_config.json`.
+- saves adapter weights and their matching `adapter_config.json` through the model-specific Unlimited-OCR MoE adapter loader.
 
 ## Evaluation gate
 

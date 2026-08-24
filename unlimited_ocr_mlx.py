@@ -182,7 +182,11 @@ def load_model(
             "MLX-VLM is required. Install the project with `uv sync` or run "
             "`uv run unlimited-ocr-mlx --help`."
         ) from exc
-    return load(model_id, revision=revision, adapter_path=str(adapter_path) if adapter_path else None)
+    model, processor = load(model_id, revision=revision)
+    if adapter_path:
+        from training.adapters import load_unlimited_ocr_adapter
+        model = load_unlimited_ocr_adapter(model, adapter_path)
+    return model, processor
 
 
 def ocr_images(

@@ -11,6 +11,7 @@ from unittest.mock import patch
 from infer_mlx import _completed_output, output_for_single, parse_args, render_pdf
 from benchmarks.compare import compare
 from benchmarks.release_gate import decide
+from training.adapters import load_unlimited_ocr_adapter
 from training.manifest import assert_disjoint_source_documents, load_manifest, validate_manifest_images
 from unlimited_ocr_mlx import (
     BASE,
@@ -99,6 +100,14 @@ class TestUnlimitedOCRMLX(unittest.TestCase):
             manifest.write_text('{"id":"one","image":"../outside.png","target":"text"}\n')
             with self.assertRaises(ValueError):
                 validate_manifest_images(load_manifest(manifest), root)
+
+    def test_adapter_loader_rejects_wrong_adapter_family_before_model_mutation(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            (root / "adapter_config.json").write_text('{"architecture":"wrong"}')
+            (root / "adapters.safetensors").touch()
+            with self.assertRaises(ValueError):
+                load_unlimited_ocr_adapter(object(), root)
 
     def test_paired_comparison_and_release_gate_reject_regressions(self):
         base = {"rows": [{"id": "a", "cer": 0.2, "complete": True}, {"id": "b", "cer": 0.4, "complete": True}]}

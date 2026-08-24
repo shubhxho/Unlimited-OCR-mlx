@@ -57,13 +57,13 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("max_tokens must be positive")
     from mlx_vlm import load
     if args.adapter_path:
-        from mlx_vlm.trainer.utils import apply_lora_layers
+        from training.adapters import load_unlimited_ocr_adapter
 
     examples = load_manifest(args.manifest)
     validate_manifest_images(examples, args.image_root, args.verify_hashes)
     model, processor = load(args.model, revision=args.model_revision)
     if args.adapter_path:
-        model = apply_lora_layers(model, str(args.adapter_path))
+        model = load_unlimited_ocr_adapter(model, args.adapter_path)
 
     rows = []
     for item in examples:

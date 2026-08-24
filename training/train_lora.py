@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+from training.adapters import install_unlimited_ocr_lora
 from training.manifest import (
     OCRExample, assert_disjoint_source_documents, load_manifest, require_provenance,
     resolve_image, validate_manifest_images,
@@ -135,20 +136,9 @@ def completion_loss(model: Any, batch: dict[str, Any]):
 
 
 def _install_lora(model: Any, rank: int, alpha: float, dropout: float) -> None:
-    """Freeze base weights and adapt all text decoder layers, including MoE."""
+    """Install reloadable Unlimited-OCR MoE LoRA adapters."""
 
-    from mlx_vlm.trainer.adapter_utils import linear_to_lora_layers
-
-    model.freeze()
-    lora_parameters = {"rank": rank, "scale": alpha / rank, "dropout": dropout}
-    # LanguageModel.layers exposes the decoder blocks. The MLX-VLM helper knows
-    # SwitchLinear, so MoE expert/routing projections are not accidentally skipped.
-    linear_to_lora_layers(model.language_model, num_layers=-1, config=lora_parameters)
-    model.config.lora = {
-        "fine_tune_type": "lora",
-        "num_layers": -1,
-        "lora_parameters": lora_parameters,
-    }
+    install_unlimited_ocr_lora(model, rank=rank, alpha=alpha, dropout=dropout)
 
 
 def _mean_validation_loss(model: Any, examples: list[OCRExample], args: argparse.Namespace, processor: Any) -> float:
