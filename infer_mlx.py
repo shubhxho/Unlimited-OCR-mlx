@@ -106,12 +106,15 @@ def _request(model, processor, pages: list[Path], args: argparse.Namespace, outp
         prefill_step_size=args.prefill_step_size,
     )
     markdown_path, metadata_path = write_result(result, output)
+    state = "DONE" if result.complete else "INCOMPLETE"
     print(
-        f"DONE  {markdown_path} | {result.image_count} image(s), {result.mode}, "
+        f"{state}  {markdown_path} | {result.image_count} image(s), {result.mode}, "
         f"{result.generation_tokens} generated tokens, {result.elapsed_seconds:.1f}s, "
         f"{result.generation_tps:.1f} tok/s | metrics: {metadata_path}"
     )
-    return True
+    if not result.complete:
+        print("Generation reached --max-tokens. Output is retained for review but will not be skipped on rerun; increase --max-tokens or split the document.")
+    return result.complete
 
 
 def run(args: argparse.Namespace) -> int:
@@ -152,12 +155,19 @@ def run(args: argparse.Namespace) -> int:
     return _run_jobs(jobs, args)
 
 
+def _completed_output(output: Path) -> bool:
+    metadata = output.with_suffix(".json")
+    if not output.exists() or not metadata.exists():
+        return False
+    try:
+        import json
+        return json.loads(metadata.read_text(encoding="utf-8")).get("complete") is True
+    except (OSError, ValueError):
+        return False
+
+
 def _run_jobs(jobs: list[tuple[list[Path], Path]], args: argparse.Namespace) -> int:
-    pending = [
-        job
-        for job in jobs
-        if args.overwrite or not (job[1].exists() and job[1].with_suffix(".json").exists())
-    ]
+    pending = [job for job in jobs if args.overwrite or not _completed_output(job[1])]
     skipped = len(jobs) - len(pending)
     if not pending:
         print(f"All {len(jobs)} output(s) already exist. Use --overwrite to regenerate.")
@@ -171,8 +181,9 @@ def _run_jobs(jobs: list[tuple[list[Path], Path]], args: argparse.Namespace) -> 
         print(f"[{index}/{len(pending)}] " + ", ".join(page.name for page in pages[:3]) + (" …" if len(pages) > 3 else ""))
         if _request(model, processor, pages, args, output):
             complete += 1
-    print(f"Finished {complete} generated request(s); {skipped} skipped.")
-    return 0
+    incomplete = len(pending) - complete
+    print(f"Finished {complete} complete request(s); {incomplete} incomplete; {skipped} skipped.")
+    return 3 if incomplete else 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:

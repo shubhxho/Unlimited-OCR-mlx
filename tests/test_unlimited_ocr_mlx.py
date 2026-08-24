@@ -8,7 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from infer_mlx import output_for_single, parse_args, render_pdf
+from infer_mlx import _completed_output, output_for_single, parse_args, render_pdf
+from training.manifest import load_manifest, validate_manifest_images
 from unlimited_ocr_mlx import (
     BASE,
     GUNDAM,
@@ -70,7 +71,32 @@ class TestUnlimitedOCRMLX(unittest.TestCase):
             markdown, metadata = write_result(result, Path(root) / "nested" / "page.md")
             self.assertEqual(markdown.read_text(), "# parsed\n")
             self.assertIn('"generation_tokens": 5', metadata.read_text())
+            self.assertIn('"complete": true', metadata.read_text())
             self.assertNotIn('"text"', metadata.read_text())
+            self.assertTrue(_completed_output(markdown))
+            metadata.write_text('{"complete": false}')
+            self.assertFalse(_completed_output(markdown))
+
+    def test_manifest_rejects_duplicate_ids_and_path_escape(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            (root / "page.png").touch()
+            manifest = root / "examples.jsonl"
+            manifest.write_text(
+                '{"id":"one","image":"page.png","target":"text"}\n'
+                '{"id":"two","image":"page.png","target":"more"}\n'
+            )
+            examples = load_manifest(manifest)
+            validate_manifest_images(examples, root)
+            manifest.write_text(
+                '{"id":"one","image":"page.png","target":"text"}\n'
+                '{"id":"one","image":"page.png","target":"more"}\n'
+            )
+            with self.assertRaises(ValueError):
+                load_manifest(manifest)
+            manifest.write_text('{"id":"one","image":"../outside.png","target":"text"}\n')
+            with self.assertRaises(ValueError):
+                validate_manifest_images(load_manifest(manifest), root)
 
     def test_cli_requires_exactly_one_input_source(self):
         args = parse_args(["--image", "page.png"])

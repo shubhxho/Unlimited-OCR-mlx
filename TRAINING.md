@@ -1,0 +1,63 @@
+# Training and Evaluation
+
+This project improves **Baidu Unlimited-OCR** through reproducible MLX experiments. It does not claim a new architecture or benchmark lead without an independently reproducible result.
+
+## Training data contract
+
+Put images outside Git and make one JSON object per line:
+
+```json
+{"id":"doc-001-p001","image":"train/doc-001-p001.png","target":"Canonical transcription", "prompt":"document parsing.", "source_document":"doc-001", "license":"CC-BY-4.0", "sha256":"..."}
+```
+
+Use document-level source IDs. Pages, alternate renders, templates, or near duplicates from a source must remain in one split. Keep public test manifests read-only and never use them for prompt selection, data synthesis, or hyperparameter choice.
+
+## LoRA baseline
+
+```bash
+uv run python -m training.train_lora \
+  --train manifests/train.jsonl \
+  --validation manifests/validation.jsonl \
+  --image-root data/images \
+  --output-dir runs/ocr-lora-001 \
+  --iters 200 --rank 16 --alpha 32 --max-seq-length 8192 \
+  --verify-hashes
+```
+
+The trainer deliberately uses one example per optimization step. Unlimited-OCR has variable dynamic visual crops; generic batching can misalign image features and `<image>` positions. Increase effective batch size only through `--gradient-accumulation` after validating memory and output parity.
+
+The trainer:
+
+- keeps the official single-page `gundam` preprocessing;
+- masks the prompt and image placeholders, training only canonical target tokens;
+- rejects over-length image examples instead of truncating visual placeholders;
+- freezes the base model and trains MLX LoRA modules in the language decoder;
+- saves adapter weights and their matching `adapter_config.json`.
+
+## Evaluation gate
+
+```bash
+# Base model, then adapter. Compare reports on the same immutable manifest.
+uv run python -m benchmarks.evaluate \
+  --manifest manifests/eval-public.jsonl --image-root data/images \
+  --output reports/base.json --verify-hashes
+
+uv run python -m benchmarks.evaluate \
+  --manifest manifests/eval-public.jsonl --image-root data/images \
+  --adapter-path runs/ocr-lora-001 \
+  --output reports/lora-001.json --verify-hashes
+```
+
+The generic evaluator reports conservative normalized CER, completion rate, raw output, reference, finish reason, and runtime metrics. It is a smoke/evidence layer, not a substitute for official benchmark evaluators.
+
+Before release, run the pinned official OmniDocBench evaluator on a locked version, report every component and difficult slice, and compare against the official BF16 Unlimited-OCR baseline with identical images, prompts, DPI, page grouping, and decoding settings. Publish an adapter only when it improves the held-out validation decision metric and does not regress the locked public test or MLX parity gate.
+
+## Architecture roadmap
+
+1. **Baseline and parity:** BF16 MLX must first match the official checkpoint.
+2. **Data:** add only licensed, deduplicated examples with source-document splits and a licence ledger.
+3. **LoRA:** target evidence-backed failures (small text, tables, formulas, reading order) with separate ablations.
+4. **Vision changes:** only after LoRA/data plateaus, train and test multi-scale vision/projector changes from a reproducible checkpoint. This is an architecture experiment, not an inference flag.
+5. **Release:** require public benchmark scores, document-level bootstrap confidence intervals, raw outputs, model/data revisions, and an explicit comparison table.
+
+Do not train on OmniDocBench public test data or claim a new state of the art from internal validation alone.

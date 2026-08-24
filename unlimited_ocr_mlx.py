@@ -51,9 +51,16 @@ class OCRResult:
     image_count: int
     mode: str
 
+    @property
+    def complete(self) -> bool:
+        """False when generation exhausted its budget and output may be truncated."""
+
+        return self.finish_reason != "length"
+
     def metadata(self) -> dict[str, Any]:
         data = asdict(self)
         data.pop("text")
+        data["complete"] = self.complete
         return data
 
 

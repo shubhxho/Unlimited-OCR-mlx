@@ -1,0 +1,1 @@
+"""Reproducible OCR evaluation utilities."""

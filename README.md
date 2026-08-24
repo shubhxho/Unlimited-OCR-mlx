@@ -81,6 +81,12 @@ uv run unlimited-ocr-mlx --pdf book.pdf --prefill-step-size 512
 
 `--max-pages-per-request` deliberately creates independent OCR requests. Use `0` (the default) for true one-shot long-horizon parsing.
 
+## Training and benchmark pipeline
+
+The repository includes a dedicated MLX LoRA trainer for Unlimited-OCR's nonstandard dual visual tensors and a locked-manifest evaluator. They are not generic MLX-VLM training wrappers, because the generic 0.6.16 VLM batch collator cannot collate Unlimited-OCR's crop/global image pair correctly.
+
+See [TRAINING.md](TRAINING.md) for the strict JSONL data contract, completion-only loss, document-level splits, reproducible LoRA command, evaluation gate, and architecture experiment policy. Do not train on public test benchmarks or publish a benchmark claim without the official evaluator and raw outputs.
+
 ## Python API
 
 ```python

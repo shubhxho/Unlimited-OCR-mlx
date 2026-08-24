@@ -17,9 +17,12 @@ dependencies = [
 
 [project.scripts]
 unlimited-ocr-mlx = "infer_mlx:main"
+unlimited-ocr-mlx-train = "training.train_lora:main"
+unlimited-ocr-mlx-eval = "benchmarks.evaluate:main"
 
 [tool.setuptools]
 py-modules = ["infer_mlx", "unlimited_ocr_mlx"]
+packages = ["training", "benchmarks"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

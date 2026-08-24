@@ -1,0 +1,18 @@
+{
+  "model": "baidu/Unlimited-OCR",
+  "training": {
+    "rank": 16,
+    "alpha": 32.0,
+    "learning_rate": 1e-5,
+    "gradient_accumulation": 1,
+    "max_seq_length": 8192,
+    "note": "Start with LoRA. Do not use full fine-tuning until the BF16 baseline, data licence ledger, held-out manifest, and rollback checkpoint are in place."
+  },
+  "release_gate": {
+    "base_model": "baidu/Unlimited-OCR@07dea832e22aefee32ad281d4b80551282e1c168",
+    "mlx_vlm": "0.6.16",
+    "require_no_public_test_training": true,
+    "require_document_level_splits": true,
+    "require_parity_before_quantization": true
+  }
+}
