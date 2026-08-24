@@ -12,6 +12,18 @@ Put images outside Git and make one JSON object per line:
 
 Use document-level source IDs. Pages, alternate renders, templates, or near duplicates from a source must remain in one split. Keep public test manifests read-only and never use them for prompt selection, data synthesis, or hyperparameter choice.
 
+## Hardware preflight
+
+Unlimited-OCR has a 3.3B-parameter dual-vision/MoE design. Its BF16 weights, dynamic visual activations, optimizer state, and LoRA gradients do not fit safely in a 16 GB unified-memory Mac. Use a 32 GB machine only for careful small LoRA experiments; 64 GB+ is the practical minimum for the full OCR training/evaluation loop. Keep at least 20 GB free disk for the source checkpoint, cache, adapters, reports, and conversion artifacts.
+
+```bash
+uv run unlimited-ocr-mlx-preflight \
+  --manifest manifests/train.jsonl --image-root data/images --workspace . \
+  --verify-hashes
+```
+
+The command validates every image and optional checksum before loading the model, then exits nonzero rather than starting a run that will OOM or exhaust disk.
+
 ## LoRA baseline
 
 ```bash
