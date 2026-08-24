@@ -15,7 +15,10 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
-from training.manifest import OCRExample, load_manifest, resolve_image, validate_manifest_images
+from training.manifest import (
+    OCRExample, assert_disjoint_source_documents, load_manifest, require_provenance,
+    resolve_image, validate_manifest_images,
+)
 
 IGNORE_INDEX = -100
 
@@ -38,6 +41,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--save-every", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--verify-hashes", action="store_true", help="Verify manifest image SHA-256 values before training")
+    parser.add_argument("--allow-unverified-provenance", action="store_true", help="Development-only: allow missing license/source/hash fields")
     return parser.parse_args(argv)
 
 
@@ -176,6 +180,9 @@ def run(args: argparse.Namespace) -> None:
     train_examples = load_manifest(args.train)
     validation_examples = load_manifest(args.validation) if args.validation else []
     validate_manifest_images(train_examples + validation_examples, args.image_root, args.verify_hashes)
+    assert_disjoint_source_documents(train=train_examples, validation=validation_examples)
+    if not args.allow_unverified_provenance:
+        require_provenance(train_examples + validation_examples)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "training_config.json").write_text(json.dumps(vars(args), default=str, indent=2) + "\n")
 

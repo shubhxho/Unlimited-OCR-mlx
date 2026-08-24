@@ -20,6 +20,8 @@ unlimited-ocr-mlx = "infer_mlx:main"
 unlimited-ocr-mlx-train = "training.train_lora:main"
 unlimited-ocr-mlx-eval = "benchmarks.evaluate:main"
 unlimited-ocr-mlx-preflight = "training.preflight:main"
+unlimited-ocr-mlx-compare = "benchmarks.compare:main"
+unlimited-ocr-mlx-release-gate = "benchmarks.release_gate:main"
 
 [tool.setuptools]
 py-modules = ["infer_mlx", "unlimited_ocr_mlx"]

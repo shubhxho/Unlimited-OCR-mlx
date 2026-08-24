@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
-from training.manifest import load_manifest, validate_manifest_images
+from training.manifest import load_manifest, require_provenance, validate_manifest_images
 
 
 def memory_gb() -> float | None:
@@ -29,6 +29,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--min-memory-gb", type=float, default=32.0)
     parser.add_argument("--min-free-disk-gb", type=float, default=20.0)
     parser.add_argument("--verify-hashes", action="store_true")
+    parser.add_argument("--allow-unverified-provenance", action="store_true", help="Development-only: do not require source, license, and hash fields")
     return parser.parse_args(argv)
 
 
@@ -37,6 +38,8 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("minimum memory and disk requirements must be positive")
     examples = load_manifest(args.manifest)
     validate_manifest_images(examples, args.image_root, args.verify_hashes)
+    if not args.allow_unverified_provenance:
+        require_provenance(examples)
     total_memory = memory_gb()
     free_disk = shutil.disk_usage(args.workspace).free / (1024**3)
     checks = {

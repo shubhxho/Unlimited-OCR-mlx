@@ -104,3 +104,34 @@ def write_manifest(examples: Iterator[OCRExample], path: str | Path) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for item in examples:
             handle.write(json.dumps(item.__dict__, ensure_ascii=False) + "\n")
+
+
+def require_provenance(examples: list[OCRExample], require_hashes: bool = True) -> None:
+    """Require auditable source and licensing data before a training run."""
+
+    for example in examples:
+        missing = []
+        if not example.source_document.strip():
+            missing.append("source_document")
+        if not example.license.strip():
+            missing.append("license")
+        if require_hashes and not example.sha256.strip():
+            missing.append("sha256")
+        if missing:
+            raise ValueError(f"Example {example.id}: missing provenance field(s): {', '.join(missing)}")
+
+
+def assert_disjoint_source_documents(**splits: list[OCRExample]) -> None:
+    """Reject train/validation/test leakage at the source-document level."""
+
+    owner: dict[str, str] = {}
+    for split_name, examples in splits.items():
+        for example in examples:
+            source = example.source_document.strip()
+            if not source:
+                continue
+            previous = owner.setdefault(source, split_name)
+            if previous != split_name:
+                raise ValueError(
+                    f"Source document {source!r} appears in both {previous!r} and {split_name!r} splits"
+                )

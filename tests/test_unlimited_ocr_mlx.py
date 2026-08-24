@@ -9,7 +9,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from infer_mlx import _completed_output, output_for_single, parse_args, render_pdf
-from training.manifest import load_manifest, validate_manifest_images
+from benchmarks.compare import compare
+from benchmarks.release_gate import decide
+from training.manifest import assert_disjoint_source_documents, load_manifest, validate_manifest_images
 from unlimited_ocr_mlx import (
     BASE,
     GUNDAM,
@@ -97,6 +99,23 @@ class TestUnlimitedOCRMLX(unittest.TestCase):
             manifest.write_text('{"id":"one","image":"../outside.png","target":"text"}\n')
             with self.assertRaises(ValueError):
                 validate_manifest_images(load_manifest(manifest), root)
+
+    def test_paired_comparison_and_release_gate_reject_regressions(self):
+        base = {"rows": [{"id": "a", "cer": 0.2, "complete": True}, {"id": "b", "cer": 0.4, "complete": True}]}
+        better = {"rows": [{"id": "a", "cer": 0.1, "complete": True}, {"id": "b", "cer": 0.2, "complete": True}]}
+        result = compare(base, better, samples=100, seed=1)
+        self.assertLess(result["mean_cer_delta_candidate_minus_base"], 0)
+        self.assertEqual(decide(result, 0.0, True), (True, []))
+        incomplete = dict(result, incomplete_ids=["a"])
+        self.assertFalse(decide(incomplete, 0.0, False)[0])
+
+    def test_source_document_split_leakage_is_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            (root / "one.jsonl").write_text('{"id":"a","image":"x.png","target":"x","source_document":"doc"}\n')
+            (root / "two.jsonl").write_text('{"id":"b","image":"x.png","target":"y","source_document":"doc"}\n')
+            with self.assertRaises(ValueError):
+                assert_disjoint_source_documents(train=load_manifest(root / "one.jsonl"), validation=load_manifest(root / "two.jsonl"))
 
     def test_cli_requires_exactly_one_input_source(self):
         args = parse_args(["--image", "page.png"])

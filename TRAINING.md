@@ -64,6 +64,23 @@ The generic evaluator reports conservative normalized CER, completion rate, raw 
 
 Before release, run the pinned official OmniDocBench evaluator on a locked version, report every component and difficult slice, and compare against the official BF16 Unlimited-OCR baseline with identical images, prompts, DPI, page grouping, and decoding settings. Publish an adapter only when it improves the held-out validation decision metric and does not regress the locked public test or MLX parity gate.
 
+## Candidate comparison and promotion
+
+A release requires a paired comparison against a baseline report generated from the **same locked manifest**:
+
+```bash
+uv run unlimited-ocr-mlx-compare \
+  --base reports/base.json --candidate reports/lora-001.json \
+  --output reports/lora-001-vs-base.json --seed 42
+
+uv run unlimited-ocr-mlx-release-gate \
+  --comparison reports/lora-001-vs-base.json \
+  --candidate runs/ocr-lora-001 --release-dir releases/ocr-lora-001 \
+  --require-statistical-improvement
+```
+
+The gate rejects incomplete generations, mismatched manifests, CER regressions, and adapters whose paired bootstrap interval does not establish improvement. Passing this generic gate is necessary but not sufficient: release still requires official OmniDocBench and task-specific evaluation with the predeclared margins.
+
 ## Architecture roadmap
 
 1. **Baseline and parity:** BF16 MLX must first match the official checkpoint.
